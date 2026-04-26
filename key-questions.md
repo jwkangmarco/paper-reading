@@ -71,19 +71,21 @@ KV cache는 BF16 GQA8 baseline 대비 ~2% 수준.
 
 ### 3-5. Gemma 4 / Qwen 3.5·3.6 비교 (외부 자료)
 
-논문 자체에는 비교 없음. 외부 자료 종합:
+논문 자체에는 비교 없음. 외부 자료 종합 (출처 [E1]–[E10] 참조, 본 문서 끝 References 섹션):
 
 | Benchmark | DS-V4-Pro-Max | Qwen3.5-Max (397B/17B) | Qwen3.6-35B-A3B | Gemma 4 31B |
 |---|---|---|---|---|
-| MMLU-Pro | **87.5** | ~85 | 85.2 | 85.2 |
-| GPQA Diamond | 90.1 | 88.4 | **92.7** | 84.3 |
-| LiveCodeBench v6 | **93.5** | 83.6 | — | 80.0 |
-| Codeforces ELO | **3206** | — | — | 2150 |
-| SWE-bench Verified | **80.6** | 76.4 | 78.8 | — |
-| Terminal-Bench 2.0 | **67.9** | 52.5 | — | — |
-| 컨텍스트 | **1M** | 256K | **1M** | 256K |
+| MMLU-Pro | **87.5** | ~85 [E5] | 85.2 [E2] | 85.2 [E1] |
+| GPQA Diamond | 90.1 | 88.4 [E5] | **92.7** [E2] | 84.3 [E1] |
+| LiveCodeBench v6 | **93.5** | 83.6 [E5] | — | 80.0 [E1] |
+| Codeforces ELO | **3206** | — | — | 2150 [E7] |
+| SWE-bench Verified | **80.6** | 76.4 [E5] | 78.8 [E8] | — |
+| Terminal-Bench 2.0 | **67.9** | 52.5 [E10] | — | — |
+| 컨텍스트 | **1M** | 256K [E10] | **1M** [E8] | 256K [E1] |
 
 → 1M context 지원은 DS-V4와 Qwen 3.6 양 진영뿐. Gemma 4는 dense 워크스테이션 카테고리.
+
+⚠ **데이터 신뢰성 주의:** 외부 블로그·리뷰 출처가 섞여 있어 평가 셋업이 모델별로 다를 수 있고, 숫자에 ±오차가 있을 수 있음. 정확한 비교를 위해서는 각 모델의 공식 technical report 확인 필요.
 
 ## 4. Trade-offs
 
@@ -133,3 +135,69 @@ KV cache는 BF16 GQA8 baseline 대비 ~2% 수준.
 논문 conclusion 도 "low-latency architectures and system techniques to make long-context deployment more responsive" 라며 효율성/시스템 방향을 미래 과제로 명시.
 
 → **요약: "효율성을 통한 frontier 도달"이 DeepSeek 의 일관된 노선**이며, 이는 (a) 자원 제약, (b) 오픈웨이트 비즈니스 모델, (c) test-time scaling 시대의 inference cost 압력 이라는 구조적 조건에 대한 합리적 응답으로 보임.
+
+---
+
+## 6. 논문 목차별 한 줄 요약
+
+| § | 제목 | 한 줄 요약 |
+|---|---|---|
+| **1** | Introduction | 1M context의 efficiency barrier를 깨기 위한 V4 시리즈 (Pro 1.6T/49B, Flash 284B/13B) 출시 동기 |
+| **2** | Architecture | V3 기반 + 새 attention(CSA/HCA) + mHC(residual 강화) + Muon optimizer 도입 |
+| 2.1 | Designs Inherited from V3 | DeepSeekMoE + MTP 유지, Sigmoid → Sqrt(Softplus) 변경, 일부 dense FFN을 Hash-routed MoE로 대체 |
+| 2.2 | Manifold-Constrained Hyper-Connections | residual mapping을 doubly stochastic manifold(Birkhoff polytope)로 제한해 spectral norm ≤1 보장, 깊은 stack 안정화 |
+| 2.3 | Hybrid Attention (CSA + HCA) | CSA는 m개 KV 압축 후 sparse top-k(Lightning Indexer), HCA는 m'≫m로 더 강하게 압축 후 dense — interleaved 사용 |
+| 2.4 | Muon Optimizer | hybrid Newton-Schulz 10회로 orthogonalize, AdamW를 임베딩·헤드·norm 모듈에만 유지 |
+| **3** | General Infrastructures | 학습/추론 인프라 전반의 효율 최적화 |
+| 3.1 | Fine-Grained EP Overlap | Expert를 wave로 쪼개 통신·연산 오버랩 (MegaMoE 커널, 1.5–1.96× 속도) |
+| 3.2 | TileLang | DSL + Z3 SMT solver + Host Codegen으로 host overhead를 µs 단위로 압축 |
+| 3.3 | Batch-Invariant Deterministic Kernels | bitwise 재현성 위해 split-KV 포기, dual-kernel attention + 결정론적 reduction |
+| 3.4 | FP4 QAT | MoE 가중치와 CSA indexer QK path를 MXFP4로 양자화, 99.7% recall 유지 |
+| 3.5 | Training Framework | Muon용 hybrid ZeRO, mHC fused kernel, 2-stage CP, tensor-level activation checkpointing |
+| 3.6 | Inference Framework | hybrid attention용 customized KV cache layout + on-disk shared-prefix 캐시 (3가지 SWA 전략) |
+| **4** | Pre-Training | 32T(Flash)/33T(Pro) 토큰 학습 + 안정화 트릭 |
+| 4.1 | Data Construction | V3 대비 long-document·multilingual·agentic 데이터 강화, 32T+ 토큰 |
+| 4.2 | Pre-Training Setups | Flash 43L/d=4096, Pro 61L/d=7168, MoE 6/256~6/384 활성, 1M까지 단계적 sequence 확장 |
+| 4.3 | Evaluations | V3.2-Base 대비 V4-Flash가 더 적은 파라미터로 우수, V4-Pro는 거의 모든 항목 SOTA (Table 1) |
+| **5** | Post-Training | mixed RL을 OPD(On-Policy Distillation)로 대체한 새 파이프라인 |
+| 5.1 | Post-Training Pipeline | specialist(SFT+GRPO) → unified model을 OPD로 통합, Think Max 모드와 GRM(generative reward) 도입 |
+| 5.2 | RL/OPD Infrastructures | FP4 rollout, full-vocab logit distillation, preemptible 토큰-단위 WAL, agentic sandbox(DSec) |
+| 5.3 | Standard Benchmark Evaluation | V4-Pro-Max가 오픈모델 SOTA, Codeforces 3206, frontier 대비 reasoning에서 3–6개월 뒤짐 (Table 6, 7) |
+| 5.4 | Real-World Tasks | 중국어 글쓰기·검색·white-collar·R&D 코드에서 Gemini-3.1/Opus-4.5/4.6와 win-rate 비교 |
+| **6** | Conclusion, Limitations, Future | 아키텍처 복잡성을 인정, 향후 simplify + multimodal + sparse embedding 방향 명시 |
+| **A** | Author List & Acknowledgment | 저자 명단 |
+| **B** | Evaluation Details | RAG vs Agentic Search 표, 중국어 functional/creative writing 세부 비교 |
+
+---
+
+## References
+
+### 논문 (1차 자료)
+
+- **[P1]** DeepSeek-AI. *DeepSeek-V4: Towards Highly Efficient Million-Token Context Intelligence*. 2026-04-24. https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro/blob/main/DeepSeek_V4.pdf
+  - 본 문서 §1–§4 와 §5 의 직접 인용은 모두 이 논문의 Table 1, 6, 7, Figure 1 등에서 발췌
+
+### 외부 자료 (Gemma 4 / Qwen 비교 — 2차 자료)
+
+- **[E1]** Aurigait. *Gemma 4 by Google: Specs, Benchmarks, and How to Run It Locally (2026 Guide)*. https://aurigait.com/blog/gemma-4-features-benchmarks-guide/
+- **[E2]** HuggingFace. *Qwen/Qwen3.6-35B-A3B model card*. https://huggingface.co/Qwen/Qwen3.6-35B-A3B
+- **[E3]** HuggingFace. *Qwen/Qwen3.6-27B model card*. https://huggingface.co/Qwen/Qwen3.6-27B
+- **[E4]** Moksh S. *Gemma 4 Benchmarks: The Numbers That Actually Matter*. Medium, 2026-04. https://medium.com/@moksh.9/heres-a-tighter-benchmark-focused-blog-post-501c5ea829f4
+- **[E5]** Techie007. *Qwen 3.5: The Complete Guide — Benchmarks, Local Setup*. Substack, 2026. https://techie007.substack.com/p/qwen-35-the-complete-guide-benchmarks
+- **[E6]** Qwen Team. *Qwen3.5: Towards Native Multimodal Agents*. https://qwen.ai/blog?id=qwen3.5
+- **[E7]** BenchLM. *Gemma 4 31B Benchmarks 2026*. https://benchlm.ai/models/gemma-4-31b
+- **[E8]** AImadetools. *Qwen 3.6 vs 3.5: 1M Context, 78.8% SWE-bench*. https://www.aimadetools.com/blog/qwen-3-6-vs-3-5/
+- **[E9]** Maniac.ai. *Qwen 3.5 vs Gemma 4: benchmark-by-size comparison*. https://www.maniac.ai/blog/qwen-3-5-vs-gemma-4-benchmarks-by-size
+- **[E10]** Digital Applied. *Qwen 3.5 Medium Models: Benchmarks, Pricing, and Guide*. https://www.digitalapplied.com/blog/qwen-3-5-medium-model-series-benchmarks-pricing-guide
+
+### 추가 참조 (오픈모델 리더보드)
+
+- VERTU. *Open Source LLM Leaderboard 2026: Rankings, Benchmarks*. https://vertu.com/lifestyle/open-source-llm-leaderboard-2026-rankings-benchmarks-the-best-models-right-now
+- iternal.ai. *LLM Benchmarks 2026: 30+ Models Ranked*. https://iternal.ai/llm-selection-guide
+- HuggingFace. *Welcome Gemma 4 (official blog)*. https://huggingface.co/blog/gemma4
+
+### 4번 (Trade-offs) · 5번 (효율성 노선) 섹션
+
+- 모두 **[P1]** 의 §6 "Conclusion, Limitations, and Future Directions" 와 §3.5–§3.6 (training/inference framework) 에서 도출
+- "frontier 대비 3–6개월 뒤짐" 표현은 **[P1]** §1 의 Reasoning 항목 직접 인용
+- 미국 칩 수출 통제 등 외부 거시 컨텍스트는 일반 공개 정보 (별도 출처 인용 없이 필자 해석)
