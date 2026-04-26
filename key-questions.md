@@ -140,33 +140,31 @@ KV cache는 BF16 GQA8 baseline 대비 ~2% 수준.
 
 ## 6. 논문 목차별 한 줄 요약
 
-| § | 제목 | 한 줄 요약 |
-|---|---|---|
-| **1** | Introduction | 1M context의 efficiency barrier를 깨기 위한 V4 시리즈 (Pro 1.6T/49B, Flash 284B/13B) 출시 동기 |
-| **2** | Architecture | V3 기반 + 새 attention(CSA/HCA) + mHC(residual 강화) + Muon optimizer 도입 |
-| 2.1 | Designs Inherited from V3 | DeepSeekMoE + MTP 유지, Sigmoid → Sqrt(Softplus) 변경, 일부 dense FFN을 Hash-routed MoE로 대체 |
-| 2.2 | Manifold-Constrained Hyper-Connections | residual mapping을 doubly stochastic manifold(Birkhoff polytope)로 제한해 spectral norm ≤1 보장, 깊은 stack 안정화 |
-| 2.3 | Hybrid Attention (CSA + HCA) | CSA는 m개 KV 압축 후 sparse top-k(Lightning Indexer), HCA는 m'≫m로 더 강하게 압축 후 dense — interleaved 사용 |
-| 2.4 | Muon Optimizer | hybrid Newton-Schulz 10회로 orthogonalize, AdamW를 임베딩·헤드·norm 모듈에만 유지 |
-| **3** | General Infrastructures | 학습/추론 인프라 전반의 효율 최적화 |
-| 3.1 | Fine-Grained EP Overlap | Expert를 wave로 쪼개 통신·연산 오버랩 (MegaMoE 커널, 1.5–1.96× 속도) |
-| 3.2 | TileLang | DSL + Z3 SMT solver + Host Codegen으로 host overhead를 µs 단위로 압축 |
-| 3.3 | Batch-Invariant Deterministic Kernels | bitwise 재현성 위해 split-KV 포기, dual-kernel attention + 결정론적 reduction |
-| 3.4 | FP4 QAT | MoE 가중치와 CSA indexer QK path를 MXFP4로 양자화, 99.7% recall 유지 |
-| 3.5 | Training Framework | Muon용 hybrid ZeRO, mHC fused kernel, 2-stage CP, tensor-level activation checkpointing |
-| 3.6 | Inference Framework | hybrid attention용 customized KV cache layout + on-disk shared-prefix 캐시 (3가지 SWA 전략) |
-| **4** | Pre-Training | 32T(Flash)/33T(Pro) 토큰 학습 + 안정화 트릭 |
-| 4.1 | Data Construction | V3 대비 long-document·multilingual·agentic 데이터 강화, 32T+ 토큰 |
-| 4.2 | Pre-Training Setups | Flash 43L/d=4096, Pro 61L/d=7168, MoE 6/256~6/384 활성, 1M까지 단계적 sequence 확장 |
-| 4.3 | Evaluations | V3.2-Base 대비 V4-Flash가 더 적은 파라미터로 우수, V4-Pro는 거의 모든 항목 SOTA (Table 1) |
-| **5** | Post-Training | mixed RL을 OPD(On-Policy Distillation)로 대체한 새 파이프라인 |
-| 5.1 | Post-Training Pipeline | specialist(SFT+GRPO) → unified model을 OPD로 통합, Think Max 모드와 GRM(generative reward) 도입 |
-| 5.2 | RL/OPD Infrastructures | FP4 rollout, full-vocab logit distillation, preemptible 토큰-단위 WAL, agentic sandbox(DSec) |
-| 5.3 | Standard Benchmark Evaluation | V4-Pro-Max가 오픈모델 SOTA, Codeforces 3206, frontier 대비 reasoning에서 3–6개월 뒤짐 (Table 6, 7) |
-| 5.4 | Real-World Tasks | 중국어 글쓰기·검색·white-collar·R&D 코드에서 Gemini-3.1/Opus-4.5/4.6와 win-rate 비교 |
-| **6** | Conclusion, Limitations, Future | 아키텍처 복잡성을 인정, 향후 simplify + multimodal + sparse embedding 방향 명시 |
-| **A** | Author List & Acknowledgment | 저자 명단 |
-| **B** | Evaluation Details | RAG vs Agentic Search 표, 중국어 functional/creative writing 세부 비교 |
+- **§1 Introduction** — 1M context의 efficiency barrier를 깨기 위한 V4 시리즈 (Pro 1.6T/49B, Flash 284B/13B) 출시 동기
+- **§2 Architecture** — V3 기반 + 새 attention(CSA/HCA) + mHC(residual 강화) + Muon optimizer 도입
+  - **§2.1 Designs Inherited from V3** — DeepSeekMoE + MTP 유지, Sigmoid → Sqrt(Softplus) 변경, 일부 dense FFN을 Hash-routed MoE로 대체
+  - **§2.2 Manifold-Constrained Hyper-Connections** — residual mapping을 doubly stochastic manifold(Birkhoff polytope)로 제한해 spectral norm ≤1 보장, 깊은 stack 안정화
+  - **§2.3 Hybrid Attention (CSA + HCA)** — CSA는 m개 KV 압축 후 sparse top-k(Lightning Indexer), HCA는 m'≫m로 더 강하게 압축 후 dense — interleaved 사용
+  - **§2.4 Muon Optimizer** — hybrid Newton-Schulz 10회로 orthogonalize, AdamW를 임베딩·헤드·norm 모듈에만 유지
+- **§3 General Infrastructures** — 학습/추론 인프라 전반의 효율 최적화
+  - **§3.1 Fine-Grained EP Overlap** — Expert를 wave로 쪼개 통신·연산 오버랩 (MegaMoE 커널, 1.5–1.96× 속도)
+  - **§3.2 TileLang** — DSL + Z3 SMT solver + Host Codegen으로 host overhead를 µs 단위로 압축
+  - **§3.3 Batch-Invariant Deterministic Kernels** — bitwise 재현성 위해 split-KV 포기, dual-kernel attention + 결정론적 reduction
+  - **§3.4 FP4 QAT** — MoE 가중치와 CSA indexer QK path를 MXFP4로 양자화, 99.7% recall 유지
+  - **§3.5 Training Framework** — Muon용 hybrid ZeRO, mHC fused kernel, 2-stage CP, tensor-level activation checkpointing
+  - **§3.6 Inference Framework** — hybrid attention용 customized KV cache layout + on-disk shared-prefix 캐시 (3가지 SWA 전략)
+- **§4 Pre-Training** — 32T(Flash)/33T(Pro) 토큰 학습 + 안정화 트릭
+  - **§4.1 Data Construction** — V3 대비 long-document·multilingual·agentic 데이터 강화, 32T+ 토큰
+  - **§4.2 Pre-Training Setups** — Flash 43L/d=4096, Pro 61L/d=7168, MoE 6/256~6/384 활성, 1M까지 단계적 sequence 확장; Anticipatory Routing + SwiGLU Clamping으로 spike 억제
+  - **§4.3 Evaluations** — V3.2-Base 대비 V4-Flash가 더 적은 파라미터로 우수, V4-Pro는 거의 모든 항목 SOTA (Table 1)
+- **§5 Post-Training** — mixed RL을 OPD(On-Policy Distillation)로 대체한 새 파이프라인
+  - **§5.1 Post-Training Pipeline** — specialist(SFT+GRPO) → unified model을 OPD로 통합, Think Max 모드와 GRM(generative reward) 도입
+  - **§5.2 RL/OPD Infrastructures** — FP4 rollout, full-vocab logit distillation, preemptible 토큰-단위 WAL, agentic sandbox(DSec)
+  - **§5.3 Standard Benchmark Evaluation** — V4-Pro-Max가 오픈모델 SOTA, Codeforces 3206, frontier 대비 reasoning에서 3–6개월 뒤짐 (Table 6, 7)
+  - **§5.4 Real-World Tasks** — 중국어 글쓰기·검색·white-collar·R&D 코드에서 Gemini-3.1/Opus-4.5/4.6와 win-rate 비교
+- **§6 Conclusion, Limitations, Future** — 아키텍처 복잡성을 인정, 향후 simplify + multimodal + sparse embedding 방향 명시
+- **§A Author List & Acknowledgment** — 저자 명단
+- **§B Evaluation Details** — RAG vs Agentic Search 표, 중국어 functional/creative writing 세부 비교
 
 ---
 
