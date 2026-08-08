@@ -347,4 +347,4 @@ Qwen2.5-Math-1.5B, teacher DeepSeek-R1-Distill-7B 기준 (Table 2).
 
 ---
 
-[← 후속 연구 정리](./opd_follow_up_research.md) · [원문 요약](./on_policy_distillation.md)
+[← 후속 연구 정리](opd_follow_up_research.md) · [원문 요약](on_policy_distillation.md)

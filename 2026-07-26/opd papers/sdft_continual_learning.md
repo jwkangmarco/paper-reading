@@ -347,4 +347,4 @@ SDFT의 신호는 ICL 능력에서 나오므로 규모가 커질수록 유리해
 
 ---
 
-[← 후속 연구 정리](./opd_follow_up_research.md) · [원문 요약](./on_policy_distillation.md)
+[← 후속 연구 정리](opd_follow_up_research.md) · [원문 요약](on_policy_distillation.md)

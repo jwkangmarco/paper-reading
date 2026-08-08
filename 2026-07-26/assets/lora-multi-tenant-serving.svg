@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="660" height="454" viewBox="0 16 660 454" fill="none">
+  <defs>
+    <filter id="soft" x="-6" y="-6" width="700" height="500" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feFlood flood-opacity="0" result="bg"/>
+      <feColorMatrix in="SourceAlpha" result="hard" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"/>
+      <feOffset dy="1.2"/>
+      <feGaussianBlur stdDeviation="1.2"/>
+      <feComposite in2="hard" operator="out"/>
+      <feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.04 0"/>
+      <feBlend in2="bg" result="shadow"/>
+      <feBlend in="SourceGraphic" in2="shadow"/>
+    </filter>
+    <style>
+      .serif { font-family: "Iowan Old Style BT", "Iowan Old Style", Palatino, Georgia, serif; }
+      .mono  { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; }
+      .note  { fill: #878787; font-size: 15.6px; font-style: italic; }
+      .body  { fill: #000; font-size: 18px; }
+      .lbl   { fill: #000; font-size: 15.6px; }
+      .tiny  { fill: #878787; font-size: 10.8px; }
+    </style>
+  </defs>
+
+  <path fill="#fff" d="M0 0h660v470H0z"/>
+
+  <!-- ═══════════ panel A — one server, many adapters ═══════════ -->
+
+  <!-- tenant chips -->
+  <g filter="url(#soft)">
+    <rect x="16" y="64"  width="118" height="32" rx="4.8" fill="#fff3ef" stroke="#ff9e85" stroke-width="1.2"/>
+    <rect x="16" y="114" width="118" height="32" rx="4.8" fill="#ffe9e3" stroke="#ff6340" stroke-width="1.2"/>
+    <rect x="16" y="164" width="118" height="32" rx="4.8" fill="#ffddd4" stroke="#c22a00" stroke-width="1.2"/>
+  </g>
+  <text class="serif lbl" x="75" y="85"  text-anchor="middle">tenant A</text>
+  <text class="serif lbl" x="75" y="135" text-anchor="middle">tenant B</text>
+  <text class="serif lbl" x="75" y="185" text-anchor="middle">tenant C</text>
+
+  <!-- converging request paths -->
+  <path d="M134 80 H150 a8 8 0 0 1 8 8 V122 a8 8 0 0 0 8 8 H168"  stroke="#ff9e85" stroke-width="1.5" fill="none"/>
+  <path d="M134 130 H168"                                          stroke="#ff6340" stroke-width="1.5" fill="none"/>
+  <path d="M134 180 H150 a8 8 0 0 0 8 -8 V138 a8 8 0 0 1 8 -8 H168" stroke="#c22a00" stroke-width="1.5" fill="none"/>
+  <path d="M168 130 H173" stroke="#878787" stroke-width="1.5" fill="none"/>
+  <path d="M182 130 L173 125.5 L173 134.5 Z" fill="#878787"/>
+
+  <!-- server -->
+  <g filter="url(#soft)">
+    <rect x="182" y="40" width="462" height="204" rx="6" fill="#fff" stroke="#000" stroke-opacity=".16" stroke-width="1.2"/>
+  </g>
+  <text class="serif note" x="200" y="64">one inference server</text>
+
+  <!-- frozen base weights -->
+  <rect x="200" y="78" width="426" height="52" rx="4.8" fill="#f5f5f5" stroke="#000" stroke-opacity=".10" stroke-width="1"/>
+  <text class="serif body" x="413" y="102" text-anchor="middle">frozen base weights   W</text>
+  <text class="mono tiny" x="413" y="119" text-anchor="middle">loaded once · never updated · shared by every request</text>
+
+  <!-- adapters -->
+  <rect x="200" y="150" width="128" height="54" rx="4.8" fill="#fff3ef" stroke="#ff9e85" stroke-width="1.2"/>
+  <rect x="349" y="150" width="128" height="54" rx="4.8" fill="#ffe9e3" stroke="#ff6340" stroke-width="1.2"/>
+  <rect x="498" y="150" width="128" height="54" rx="4.8" fill="#ffddd4" stroke="#c22a00" stroke-width="1.2"/>
+  <text class="serif lbl" x="264" y="174" text-anchor="middle">adapter A</text>
+  <text class="serif lbl" x="413" y="174" text-anchor="middle">adapter B</text>
+  <text class="serif lbl" x="562" y="174" text-anchor="middle">adapter C</text>
+  <text class="mono tiny" x="264" y="192" text-anchor="middle">B·A   rank r</text>
+  <text class="mono tiny" x="413" y="192" text-anchor="middle">B·A   rank r</text>
+  <text class="mono tiny" x="562" y="192" text-anchor="middle">B·A   rank r</text>
+
+  <text class="serif note" x="413" y="226" text-anchor="middle">one batch — three model versions sampled at once</text>
+
+  <!-- ═══════════ divider ═══════════ -->
+  <path d="M16 276 H644" stroke="#000" stroke-opacity=".08" stroke-width="1"/>
+
+  <!-- ═══════════ panel B — weights held in memory ═══════════ -->
+  <text class="serif note" x="16" y="306">weights held in memory</text>
+
+  <!-- row 1: full fine-tuning -->
+  <text class="serif lbl" x="16" y="350">full fine-tuning</text>
+  <rect x="150" y="324" width="150" height="42" rx="4" fill="#ebebeb" stroke="#000" stroke-opacity=".12" stroke-width="1"/>
+  <rect x="313" y="324" width="150" height="42" rx="4" fill="#ebebeb" stroke="#000" stroke-opacity=".12" stroke-width="1"/>
+  <rect x="476" y="324" width="150" height="42" rx="4" fill="#ebebeb" stroke="#000" stroke-opacity=".12" stroke-width="1"/>
+  <text class="serif lbl" x="225" y="350" text-anchor="middle">W + Δ<tspan class="mono" font-size="10.8">A</tspan></text>
+  <text class="serif lbl" x="388" y="350" text-anchor="middle">W + Δ<tspan class="mono" font-size="10.8">B</tspan></text>
+  <text class="serif lbl" x="551" y="350" text-anchor="middle">W + Δ<tspan class="mono" font-size="10.8">C</tspan></text>
+  <text class="mono tiny" x="150" y="382">one full copy of the weights per model version</text>
+
+  <!-- row 2: LoRA -->
+  <text class="serif lbl" x="16" y="422">LoRA</text>
+  <rect x="150" y="396" width="150" height="42" rx="4" fill="#ebebeb" stroke="#000" stroke-opacity=".12" stroke-width="1"/>
+  <text class="serif lbl" x="225" y="422" text-anchor="middle">W</text>
+  <rect x="313" y="396" width="24" height="42" rx="3" fill="#fff3ef" stroke="#ff9e85" stroke-width="1.2"/>
+  <rect x="346" y="396" width="24" height="42" rx="3" fill="#ffe9e3" stroke="#ff6340" stroke-width="1.2"/>
+  <rect x="379" y="396" width="24" height="42" rx="3" fill="#ffddd4" stroke="#c22a00" stroke-width="1.2"/>
+  <text class="mono tiny" x="325" y="421" text-anchor="middle">A</text>
+  <text class="mono tiny" x="358" y="421" text-anchor="middle">B</text>
+  <text class="mono tiny" x="391" y="421" text-anchor="middle">C</text>
+  <text class="serif note" x="420" y="422">… and as many more as fit</text>
+  <text class="mono tiny" x="150" y="454">one shared copy + one small adapter per version</text>
+</svg>

@@ -348,4 +348,4 @@ ExOPD는 OPD 대비 ① **training reward가 더 높고** (목적함수가 rewar
 
 ---
 
-[← 후속 연구 정리](./opd_follow_up_research.md) · [원문 요약](./on_policy_distillation.md)
+[← 후속 연구 정리](opd_follow_up_research.md) · [원문 요약](on_policy_distillation.md)

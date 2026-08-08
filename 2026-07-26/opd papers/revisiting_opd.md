@@ -347,4 +347,4 @@ sampled-token OPD 대비 **한 점 추정 → 같은 prefix에서 teacher가 지
 
 ---
 
-[← 후속 연구 정리](./opd_follow_up_research.md) · [원문 요약](./on_policy_distillation.md)
+[← 후속 연구 정리](opd_follow_up_research.md) · [원문 요약](on_policy_distillation.md)

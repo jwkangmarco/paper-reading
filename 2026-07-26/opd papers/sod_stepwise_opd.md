@@ -336,4 +336,4 @@ trajectory-level 필터링이라면 궤적 전체를 버리거나 전부 살렸�
 
 ---
 
-[← 후속 연구 정리](./opd_follow_up_research.md) · [원문 요약](./on_policy_distillation.md)
+[← 후속 연구 정리](opd_follow_up_research.md) · [원문 요약](on_policy_distillation.md)

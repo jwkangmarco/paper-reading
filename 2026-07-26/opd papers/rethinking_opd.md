@@ -8,6 +8,14 @@
 
 **한 줄 정의**: OPD는 "teacher가 좋으면 된다"가 아니다. **thinking pattern이 호환되고 + teacher가 student가 본 적 없는 능력을 실제로 갖고 있을 때만** 작동하며, 그 성공은 student가 방문한 상태의 **고확률 공유 토큰(확률질량의 97~99%)에 대한 점진적 정렬**이라는 단 하나의 시그니처로 나타난다.
 
+<img src="./assets/ropd_fig1_overview.png" width="900">
+
+> **Figure 1** (원문 p.1) — 논문 전체 요약. **왼쪽** Student-Teacher-Gap Recovery: 같은 파이프라인 teacher(DS-7B **5.3%**, Qwen3-4B **15.6%**) vs RL post-trained teacher(SW-7B **16.9%**, Qwen3-4B-Math **58.6%**) → *"높은 점수가 OPD에 추가 정보 이득을 주지는 않는다."* **가운데** Reverse Distillation (Weak→Strong): 점수가 더 높은 DS-7B(0.55)로 distill해도 결과는 DS-1.5B(0.28)로 distill한 것과 같다 → *"OPD는 근본적으로 thinking pattern을 배운다. 성능은 별로 중요하지 않다."* **오른쪽** Overlap Token Ratio: 성공 run만 overlap이 상승한다 → *"OPD는 고확률 overlap 토큰에 대한 점진적 정렬로 이어진다."*
+
+<img src="./assets/ropd_paper_overview.png" width="880">
+
+> **Paper Overview** (원문 p.2) — 논문의 3단 구성. **Phenomenology(§3)** 언제 성공/실패하는가 → **Mechanism(§4)** 토큰 수준에서 왜 작동하는가 → **Recipe(§5)** 실패한 OPD를 어떻게 살리는가. 아래 §5.2 / §5.3 / §5.4가 각각 이에 대응한다.
+
 ---
 
 ## 1. Background
@@ -21,12 +29,12 @@
 
 ### 기존 방법·기존 이해의 한계
 
-| 관점 | 기존 이해 | 이 논문이 지적하는 빈칸 |
-|---|---|---|
-| Off-policy distillation (SFT) → **OPD (통설)** | 고정 teacher 시퀀스의 exposure bias를, dense reward + on-policy로 회피 | 진단은 원문 블로그와 동일. 그러나 **언제 실패하는지에 대한 조건이 없다** |
-| Teacher 선정 | "open-weight면 아무거나" | 같은 계열 상위 모델은 **student 관점에서 분포적으로 구분 불가**할 수 있다 |
-| Capacity gap 연구 | Cho & Hariharan(2019), Mirzadeh(2020), Busbridge(2025) 의 distillation scaling law, Li(2025)의 "learnability gap" | 전부 **off-policy KD 중심**. OPD에서의 capacity gap·distillability는 미탐구 |
-| Reward 신뢰성 | reverse KL은 unhackable하므로 안전 | **globally informative ≠ locally exploitable** — 신뢰성이 궤적 깊이에 따라 붕괴 |
+| 관점                                           | 기존 이해                                                                                                           | 이 논문이 지적하는 빈칸                                                      |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Off-policy distillation (SFT) → **OPD (통설)** | 고정 teacher 시퀀스의 exposure bias를, dense reward + on-policy로 회피                                                    | 진단은 원문 블로그와 동일. 그러나 **언제 실패하는지에 대한 조건이 없다**                        |
+| Teacher 선정                                   | "open-weight면 아무거나"                                                                                             | 같은 계열 상위 모델은 **student 관점에서 분포적으로 구분 불가**할 수 있다                    |
+| Capacity gap 연구                              | Cho & Hariharan(2019), Mirzadeh(2020), Busbridge(2025) 의 distillation scaling law, Li(2025)의 "learnability gap" | 전부 **off-policy KD 중심**. OPD에서의 capacity gap·distillability는 미탐구   |
+| Reward 신뢰성                                   | reverse KL은 unhackable하므로 안전                                                                                    | **globally informative ≠ locally exploitable** — 신뢰성이 궤적 깊이에 따라 붕괴 |
 
 ---
 
@@ -143,6 +151,10 @@ L_OPD^top-k(θ) = E [ Σ_{t=1..T} D_KL( p̄_t || q̄_t ) ]
 | Qwen3-4B (Non-thinking) | 0.212 | 0.210 | **0.700** | 200 step 후 평균 약 0.15 |
 | Qwen3-4B-Base-GRPO | 0.204 | **0.242** | 0.599 | 200 step 후 평균 약 **0.20** |
 
+<img src="./assets/ropd_fig2_thinking_pattern.png" width="900">
+
+> **Figure 2** (원문 p.6) — thinking pattern이 다른 두 teacher로부터 같은 student(Qwen3-1.7B-Base)로의 OPD. **왼쪽** validation accuracy: GRPO teacher(보라)가 일관되게 앞선다. 점선은 각 teacher의 성능. **오른쪽** overlap ratio: GRPO teacher 쪽이 **초기부터 더 높고**, Non-thinking teacher(주황)는 step 40~90 구간에서 뚜렷하게 떨어졌다가 회복한다. 두 곡선은 후반에 수렴하지만 **왼쪽의 성능 격차는 끝까지 유지된다.**
+
 - GRPO teacher가 **초기 overlap ratio가 더 높다**(base 모델 student와 thinking pattern이 가깝다). 벤치마크별 분해(Appendix A.3)에서도 AMC 2023·AIME 2024에서 격차가 크고 AIME 2025에서 작지만 방향은 동일하다.
 - 두 overlap 곡선은 학습 후반에 수렴하지만 **성능 격차는 끝까지 유지**된다 → **초기 mismatch로 잃은 distillation 이득은 나중에 복구되지 않는다.**
 
@@ -157,6 +169,10 @@ L_OPD^top-k(θ) = E [ Σ_{t=1..T} D_KL( p̄_t || q̄_t ) ]
 | Qwen (student: Qwen3-1.7B) | Qwen3-4B (same-pipeline) | 75.7% | **15.6%** |
 | Qwen | Qwen3-4B-RL-Math (RL post-trained) | 70.3% | **58.6%** |
 
+<img src="./assets/ropd_fig4_new_knowledge.png" width="900">
+
+> **Figure 4** (원문 p.7) — teacher에 **추가 RL post-training**이 있는 경우와 없는 경우의 OPD 비교. **왼쪽** DeepSeek 계열, **오른쪽** Qwen 계열. 두 계열 모두 same-pipeline teacher(주황)는 개선이 미미하고, post-trained teacher(보라)는 훨씬 큰 이득을 낸다. 각 패널 안의 박스가 **초기 overlap ratio와 gap recovery rate**를 병기하는데, **overlap은 낮은 쪽이 recovery는 높다**는 역전이 여기서 바로 읽힌다.
+
 > 주목할 점: post-trained teacher 쪽이 오히려 **초기 overlap ratio는 더 낮다**(71.5% < 74.2%, 70.3% < 75.7%). 그럼에도 gap recovery는 3~4배 높다. 즉 **overlap은 조건 1의 대리 지표일 뿐, 조건 2를 대신하지 못한다.** 두 조건은 독립적으로 필요하다.
 
 #### (c) reverse distillation — 두 조건을 동시에 검증하는 결정적 실험
@@ -168,6 +184,10 @@ L_OPD^top-k(θ) = E [ Σ_{t=1..T} D_KL( p̄_t || q̄_t ) ]
 | Student JustRL-1.5B | 약 **0.54** | — |
 | ① teacher = R1-Distill-1.5B | **0.28** | 약 **0.30** (pre-RL 수준으로 거의 정확히 회귀) |
 | ② teacher = R1-Distill-7B | **0.55** | 약 **0.30** — ①과 **거의 구분 불가** |
+
+<img src="./assets/ropd_fig5_reverse_distillation.png" width="900">
+
+> **Figure 5** (원문 p.8) — JustRL-1.5B를 student로, 같은 계열 두 teacher(R1-Distill-1.5B / R1-Distill-7B)로 reverse distillation. 세 벤치마크 모두에서 **두 곡선이 거의 겹친 채 함께 내려간다.** R1-Distill-7B가 JustRL-1.5B보다 점수가 높은데도(위쪽 주황 점선) student를 같은 수준으로 퇴행시킨다. **OPD의 학습 역학이 teacher의 벤치마크 성능이 아니라 thinking pattern에 지배된다**는 것을 가장 직접적으로 보여주는 그림이다.
 
 여기서 세 가지 결론이 따라온다.
 
@@ -189,6 +209,10 @@ L_OPD^top-k(θ) = E [ Σ_{t=1..T} D_KL( p̄_t || q̄_t ) ]
 | **Entropy gap** | 좁아짐 | 초기부터 **지속적 불일치** |
 | gap recovery | **80% 이상** | 없음 |
 
+<img src="./assets/ropd_fig6_success_vs_fail.png" width="900">
+
+> **Figure 6** (원문 p.9) — 같은 student(R1-Distill-1.5B)에 성공 teacher(JustRL-1.5B, 파랑)와 실패 teacher(R1-Distill-7B, 빨강)를 붙인 비교. **위 3개** 세 벤치마크 avg@16 — 파랑만 상승하고 빨강은 정체한다(점선은 teacher 성능). **아래 3개** 진단 지표 — overlap ratio는 **0.72 → 0.92**로 꾸준히 오르는 반면 빨강은 **0.78 부근에서 평탄**하고 후반에는 오히려 하락한다. overlap-token advantage는 파랑만 0으로 접근하고, entropy gap도 파랑이 더 작게 유지된다. **이 논문에서 가장 중요한 그림**으로, 세 지표가 동시에 움직이는 것이 성공의 시그니처다.
+
 - **overlap 토큰이 확률질량의 97~99% 를 차지한다** (Appendix B.1, student·teacher 양쪽 모두, 학습 전 구간). 즉 overlap ratio 상승은 **집합 수준의 우연한 일치가 아니라, 확률적으로 지배적인 토큰들 위에서의 정렬**이다.
 - overlap-token advantage의 개선은 OPD의 주 최적화 신호가 **overlap 영역 바깥이 아니라 그 안에서 확률을 재배분하는 것**임을 시사한다.
 
@@ -201,6 +225,10 @@ L_OPD^top-k(θ) = E [ Σ_{t=1..T} D_KL( p̄_t || q̄_t ) ]
 | **Student Top-k** | S_t^(p) 전체 | 기준선 |
 | **Overlap Top-k** | S_t^(p) ∩ S_t^(q) | **세 벤치마크 모두에서 Student Top-k 성능을 그대로 회복** |
 | **Non-Overlap Top-k** | 대칭차 S_t^(p) △ S_t^(q) | 일관되게 **뚜렷하게 약함** |
+
+<img src="./assets/ropd_fig7_overlap_ablation.png" width="900">
+
+> **Figure 7** (원문 p.10) — Top-k OPD의 최적화 support를 바꾼 ablation. **위 3개** 벤치마크에서 **Overlap Top-k(빨강)가 Student Top-k(파랑)를 그대로 따라가고**, Non-Overlap Top-k(회색)만 일관되게 아래에 있다. **아래 3개** 진단 지표 — overlap ratio에서 파랑·빨강은 겹쳐서 0.90 이상으로 오르지만 회색은 **먼저 0.62까지 떨어진 뒤 부분적으로만 회복**한다. overlap-token advantage도 파랑·빨강이 구분되지 않고, 회색은 entropy gap이 끝까지 크게 남는다.
 
 - Student Top-k와 Overlap Top-k의 advantage 곡선은 **거의 구분 불가**하고, overlap ratio도 똑같이 72% → 91% 이상으로 오른다. Non-Overlap은 advantage 크기가 훨씬 작아 **실효 gradient가 약하며**, overlap ratio가 먼저 하락한 뒤 부분적으로만 회복한다.
 - 저자들의 해석 — **overlap 최적화는 self-reinforcing 하다.** 어떤 토큰이 공유 고확률 영역에 들어와 teacher의 선호를 받으면, reverse-KL 업데이트가 그 토큰에 질량을 더 몰아주고 경쟁하던 non-overlap 토큰을 student의 top-k 밖으로 밀어낸다. overlap 영역은 최적화에도 **불구하고**가 아니라 최적화 **때문에** 커진다.
@@ -231,6 +259,10 @@ L_OPD^top-k(θ) = E [ Σ_{t=1..T} D_KL( p̄_t || q̄_t ) ]
 | AIME 2025 | 약 0.060 ~ **0.075** 유지 | 약 0.015 → 0.05 |
 | AMC 2023 | 약 0.36 → **0.40** | 약 0.12 → 0.26 |
 
+<img src="./assets/ropd_fig8_cold_start.png" width="900">
+
+> **Figure 8** (원문 p.12) — OPD 이전의 off-policy cold start 효과. teacher는 Qwen3-4B (Non-thinking)로 고정하고, student 초기화만 **Qwen3-1.7B-SFT(파랑)** vs **Qwen3-1.7B-Base(주황)** 로 다르게 한 두 run. **위 3개** 세 벤치마크에서 SFT 초기화가 시종일관 위에 있다. **아래 3개** SFT 초기화는 overlap ratio가 **높은 값에서 매끄럽게 유지**되는 반면 Base 초기화는 **0.75에서 0.49까지 급락**했다가 서서히 회복하며, entropy gap도 Base 쪽만 반복적으로 크게 튄다.
+
 - **성능 격차가 학습 내내 유지된다** → cold start는 초기 최적화만 돕는 게 아니라 **후속 OPD의 최종 성능 상한 자체를 올린다.** overlap dynamic도 같은 결론: SFT 초기화 student는 훨씬 높은 overlap ratio에서 시작해 **매끄럽고 안정적**인 궤적을 그리는 반면, Base 초기화는 낮게 시작해 **뚜렷한 불안정**(약 0.70 → 0.50 급락 후 서서히 회복)을 겪고 entropy gap도 처음부터 크다.
 - **overlap mass** (Appendix C.2)가 더 결정적이다. SFT 초기화는 student·teacher overlap mass를 각각 약 1.0 / 0.97 이상으로 **일관되게 높게 유지**한다. Base 초기화는 최저 약 **0.55** 까지 떨어진다. → overlap-token advantage만 보면 오해할 수 있다(교집합 위에서만 평균내므로, **교집합 자체가 중요한 teacher 토큰을 놓쳐도 좋아 보인다**). overlap mass가 이를 보완한다.
 
@@ -244,6 +276,10 @@ L_OPD^top-k(θ) = E [ Σ_{t=1..T} D_KL( p̄_t || q̄_t ) ]
 | overlap ratio 시작 → 종료 | 0.74 → 0.92 | **0.82 → 0.95** |
 | teacher 성능 회복 비율 (Appendix C.4) | 약 **80%** | 약 **85%** |
 
+<img src="./assets/ropd_fig9_prompt_template.png" width="900">
+
+> **Figure 9** (원문 p.13) — prompt **템플릿** 정렬의 효과. **왼쪽** 평균 validation accuracy — teacher-aligned(주황)가 후반에 벌어진다. **오른쪽** overlap ratio — teacher-aligned는 **0.82에서 시작해 0.95로**, 원본 DAPO(파랑)는 **0.74에서 0.92로** 간다. 문제 자체는 동일하고 **제시 형식만 다른데** 시작점과 도달점이 모두 올라간다.
+
 > **동일한 문제, 동일한 teacher, 바뀐 것은 프롬프트 형식 한 줄뿐**인데 gap recovery가 80% → 85% 로 움직인다. 템플릿이 student의 생성 상태를 teacher와 더 호환되게 만들기 때문이다.
 
 **(b-2) prompt content**: teacher Qwen3-4B-Base-GRPO / student Qwen3-1.7B-Base. teacher의 RL 학습 데이터인 **DAPO-Math-17K** vs 그것과 중복 제거한 **DeepMath subset**(exact-match + all-mpnet-base-v2 임베딩 코사인 유사도 0.6 이상 제거, Appendix C.3). 크기는 맞췄다.
@@ -254,6 +290,10 @@ L_OPD^top-k(θ) = E [ Σ_{t=1..T} D_KL( p̄_t || q̄_t ) ]
 | overlap ratio | 약 0.70 | 약 0.68 (**오히려 낮다**) |
 | overlap 토큰에 대한 student 확률합 | 0.3 ~ 0.8 사이 크게 요동 | 약 **0.85 ~ 0.90 안정** |
 | student entropy | 약 3 ~ 6 | 약 **1.5** (급격히 낮음) |
+
+<img src="./assets/ropd_fig10_prompt_content.png" width="900">
+
+> **Figure 10** (원문 p.13) — prompt **내용** 정렬의 효과. **위 3개** 세 벤치마크에서 DAPO-Math-17K(주황, teacher의 RL 학습 데이터)가 dedup DeepMath(파랑)보다 낫다. **아래 3개가 핵심이다** — overlap ratio는 오히려 **주황이 더 낮은데**(≈0.68 vs ≈0.70), overlap 토큰에 대한 student 확률합은 **주황이 0.9 이상에서 안정**이고 파랑은 **0.3까지 붕괴했다가 회복**한다. student entropy는 주황이 **1.5 부근으로 급락**한다. 즉 **집합의 크기가 아니라 그 위의 질량이 성능을 설명하며**, 그 대가로 탐색 여력이 줄어든다.
 
 - teacher-aligned prompt는 **overlap 집합은 더 작지만 그 위의 질량은 훨씬 크다** — "적지만 더 강하게 공유되는 토큰"에 집중하므로 **실효 정렬이 더 강하다.**
 - **단, 대가가 있다.** teacher의 post-training 데이터만으로 OPD를 돌리면 policy entropy가 과도하게 줄어 **탐색 여력이 사라진다.** 저자들의 권고는 **teacher-aligned prompt에 out-of-distribution prompt를 섞는 것.**
@@ -268,6 +308,15 @@ R1-Distill-1.5B ← JustRL-1.5B, max response length 6종(0.5K / 1K / 3K / 7K / 
 
 - **0.5K·1K**는 supervised token이 너무 적어 sample-efficiency 부족, **3K·7K가 가장 강한 성능(sweet spot)**, **10K·15K는 정체 또는 하락**.
 - 10K·15K는 **late-stage collapse**: 약 step 200~220에서 overlap ratio가 급락하고 student entropy와 gradient norm이 동시에 스파이크.
+
+<img src="./assets/ropd_fig11_length_continuation.png" width="900">
+
+> **Figure 11** (원문 p.14) — dense supervision이 깊이에 치르는 대가. **(a)** max response length 6종별 세 벤치마크 성능 — 세 벤치마크 모두에서 **3K·7K(노랑·주황)가 정점**이고 **15K(보라)에서 내려온다.** **(b)** student prefix를 여러 길이에서 자르고 teacher가 이어 풀게 했을 때의 정확도 이득 — **1K에서 +0.3659 → 16K에서 +0.0237.** 궤적이 깊어질수록 teacher의 우위가 사실상 소멸한다.
+
+<img src="./assets/ropd_fig13_entropy_heatmap.png" width="900">
+
+> **Figure 13** (원문 p.15) — 15K max response length 설정에서 **출력 위치별 student entropy를 step 180~250에 걸쳐** 측정한 히트맵. step 190에서는 **응답 맨 끝(13K~15K 부근)에서만** 고엔트로피(파랑)가 나타나지만, step 200~220에서 붉은 영역이 **왼쪽으로 번져 6K 지점까지 도달**한다. **불안정이 뒤에서 시작해 앞으로 전파된다**는 주장의 직접적 시각 증거다.
+
 - **불안정성은 뒤에서 시작해 앞으로 전파된다.** 15K 설정에서 출력 위치별 student entropy 히트맵(step 180→250)을 보면, 고엔트로피가 **응답 끝에서 먼저 나타나 학습이 진행될수록 앞쪽 토큰으로 번진다.** teacher entropy도 동일한 suffix-to-prefix 패턴(Appendix D.1) — **teacher가 점점 낯선 prefix를 만나 더 noisy한 reward를 내고, 그것이 student를 불안정하게 만든다.**
 
 **teacher continuation도 prefix 깊이에 따라 무력해진다.** DAPO-Math-17K에서 2K prompt를 뽑아 student full rollout을 생성, **16K 토큰을 넘는 것들만** 골라 여러 지점에서 자르고 그 prefix에서 **teacher가 이어서 풀게** 한다.
@@ -287,6 +336,10 @@ R1-Distill-1.5B ← JustRL-1.5B, max response length 6종(0.5K / 1K / 3K / 7K / 
 | JustRL-1.5B | **0.7333** | 성공 |
 | R1-Distill-7B | **0.7511** | **실패** |
 
+<img src="./assets/ropd_fig14_reward_auroc.png" width="900">
+
+> **Figure 14** (원문 p.16) — 정답(파랑) / 오답(빨강) rollout의 sequence mean reward 분포. **왼쪽** 성공 teacher JustRL-1.5B **AUROC 0.7333**, **오른쪽** 실패 teacher R1-Distill-7B **AUROC 0.7511**. 양쪽 모두 정답 rollout에 더 높은 reward를 주며, **실패하는 teacher 쪽이 오히려 판별력이 약간 높다.** 즉 실패의 원인은 **신호의 전역적 품질이 아니다.**
+
 - **실패하는 7B teacher의 reward가 오히려 AUROC가 더 높다** → 실패는 신호 품질(global correlation)의 문제가 **아니다.** 그런데 §5.3에서 이 run은 학습 후반 **overlap-token advantage의 크기가 더 큰데도 gradient norm은 지속적으로 더 작았다.**
 - 저자들의 가설 — **anisotropy**. 7B teacher의 per-token advantage는 개별로는 크지만 시퀀스 내 위치별로 **방향이 제각각**이라 gradient로 합쳐질 때 **부분적으로 상쇄**된다. 반대로 thinking pattern이 호환되는 JustRL-1.5B는 advantage를 **일관된 토큰 부분집합에 집중**시켜, 개별 신호가 작아도 방향이 일치해 reverse KL의 mode-seeking이 증폭시킬 수 있다. 저자들은 이 가설을 **직접 검증하지 않았음을 명시**하고 future work로 남긴다.
 
@@ -299,6 +352,10 @@ R1-Distill-1.5B ← JustRL-1.5B 설정에서 support size k를 바꾼다.
 | AIME 2024 | **0.454** | 0.446 | **0.473** | 0.458 | 0.463 |
 | AIME 2025 | 0.327 | **0.310** | 0.331 | 0.338 | 0.338 |
 | AMC 2023 | 0.782 | **0.772** | **0.793** | 0.791 | 0.785 |
+
+<img src="./assets/ropd_fig15_support_size.png" width="900">
+
+> **Figure 15** (원문 p.17) — Top-k OPD의 support size `k` 효과 (avg@16). 세 벤치마크 모두에서 **Sampled-token(회색)이 Top-16·Top-64와 사실상 구분되지 않고**, 유일하게 낮은 것은 **Top-1(연한 파랑)** 이다. `k`를 4 이상으로 키워도 이득은 소수점 셋째 자리에 머문다.
 
 - sampled-token OPD가 top-k 계열 평균과 **대등**하다. k를 4 이상으로 키워도 이득은 미미하고 연산 오버헤드만 늘어난다. **명확히 나쁜 것은 Top-1 하나뿐** — overlap 성장이 불안정하고 entropy·gradient norm에 급격한 스파이크가 난다(Top-4는 안정적이나 후반 dip, Top-16/64는 끝까지 매끄러움).
 - **Top-1의 실패 원인은 "토큰이 적어서"가 아니라 "편향된 mode-집중 선택 규칙이라서"이다.** 항상 argmax를 고르므로 작은 정책 변화가 rank-1 토큰을 뒤집고, 학습 과정에서 평균화되지 않는 불안정한 reward가 생긴다. 반면 sampled-token은 매 step **student 분포에 비례해 다른 토큰을 뽑으므로** 고확률 영역을 unbiased하게 커버한다.
@@ -347,4 +404,8 @@ Thinking Machines Lab 블로그(2025.10.27)의 8개 주장에 이 논문이 무�
 
 ---
 
-[← 후속 연구 정리](./opd_follow_up_research.md) · [원문 요약](./on_policy_distillation.md)
+> **그림 출처**: 이 문서의 모든 그림은 원논문 [arXiv:2604.13016v2](https://arxiv.org/abs/2604.13016) (Li et al., 2026)의 Figure를 해당 페이지에서 캡처한 것이며, 출처 표시 하에 개인 학습 목적으로 인용했다. 캡션의 해설은 이 문서의 것이다.
+
+---
+
+[← 후속 연구 정리](../opd_follow_up_research.md) · [원문 요약](on_policy_distillation.md) · [Code](https://github.com/thunlp/OPD)
