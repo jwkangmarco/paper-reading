@@ -29,7 +29,6 @@
 ---
 
 ## 2. Motivation
-
 <img src="./assets/mixlm_fig1_architecture.png" width="480">
 
 > **Figure 1**: MixLM의 아키텍처. **오프라인 단계**에서 item 문서를 **encoder LLM**으로 처리해 compact embedding으로 만들고 **nearline cache**에 저장한다. **서빙 시점**에는 이 임베딩을 가져와 사용자의 query 및 선택적 보조 텍스트 feature와 **연결(concatenate)** 하고, 이 혼합 입력을 **ranker LLM**에 넘겨 relevance score를 얻는다.
@@ -248,7 +247,9 @@ Amortized prefill + MixLM       — item 압축 계수 K, item token 은 T_i/K
 | 메커니즘 | 내용 |
 |---|---|
 | **In-batch prefix caching** | 첫 prompt의 **KV state를 재사용**해 batch 내 모든 item이 같은 query-prefix 계산을 공유. suffix token은 (1) dense paged attention으로 첫 prompt의 prefix token 전체에 attend, (2) regular causal attention으로 자기들끼리 attend |
-| **Multi-item scoring** | 여러 item을 **구분자로 이어 하나의 시퀀스**로 만든다. FlashInfer의 **prefix-aware masking**으로 item 간 cross-attention을 차단 |
+| **Multi-item scoring** | 여러 item을 **구분자로 이어 하나의 시퀀스**로 만든다. FlashInfer의 **item-aware masking**으로 item 간 cross-attention을 차단 |
+
+> ⚠️ **용어 주의 — 이 마스킹은 attention을 "여는" 것이 아니라 "막는" 것이다.** 목적은 패킹된 multi-item 스코어링을 **개별 스코어링과 동치로 만드는 것**이며, 순수한 효율 장치다(§5는 Inference Engine Optimization 절이다). 실제로 논문은 **"suffix tokens attend to themselves via regular causal attention"** 이라고 명시한다 — 즉 **MixLM의 decoder는 전 구간 causal이고, prefix-LM이나 bidirectional attention을 쓰지 않는다.** query 토큰이 item을 보지 못하는 구조적 한계는 그대로 남아 있으며, 논문의 baseline(Table 3)에 **BERT cross-encoder가 없다는 점**과 함께 읽어야 한다.
 
 ### 5.3 Inference Engine CPU Overhead Reduction
 
@@ -402,3 +403,128 @@ SGLang 엔진 최적화 이후 **Python gRPC 서비스가 지배적 병목**으�
 | [`../2026-07-26/on_policy_distillation.md`](../2026-07-26/on_policy_distillation.md) | MixLM의 Stage III는 **off-policy distillation**이다 — teacher가 고정된 데이터셋에 대해 낸 예측을 student가 모방한다. OPD가 지적하는 distribution mismatch 문제는 여기서 크지 않은데, **student와 teacher가 같은 query–item 쌍을 보고 입력 형태만 다르기** 때문이다. self-alignment loss가 정확히 그 **입력 형태 차이를 메우는** 장치다 |
 | [`../2026-06-03/autoregressive_ranking_stoical.md`](../2026-06-03/autoregressive_ranking_stoical.md) | 같은 "LLM을 랭킹에 쓰되 비용을 감당한다"는 문제의식. MixLM은 **cross-encoder를 포기하지 않는 쪽**의 답이다 |
 | [`../2026-06-03/pplx_embed_diffusion_embeddings.md`](../2026-06-03/pplx_embed_diffusion_embeddings.md) | MixLM이 first-stage filter로만 적합하다고 평가한 **embedding retrieval**(NDCG@10 0.8380)의 품질을 끌어올리려는 반대 방향의 시도 |
+
+---
+
+## 9. 논문 밖 논의 — 재현·응용 시 검토 사항
+
+> 이 절은 원 논문에 없는 내용이다. 논문을 읽고 실제로 응용하려 할 때 걸리는 지점들을 정리했다. **논문이 보증하는 범위와 그 밖의 추론을 명시적으로 구분**했다.
+
+### 9.1 base model이 전부 익명이다
+
+| 구성요소 | 논문이 밝힌 것 | 밝히지 않은 것 |
+|---|---|---|
+| **Ranker LLM** | "0.6B **pretrained** model" | 모델 계열 |
+| **Encoder LLM** | "0.6B **GTE**(General Text Embedding) model trained with contrastive learning" | 모델 계열. **인용조차 없다** |
+| **Relevance judge** | "**7B in-house** LLM" | 모델 계열 |
+
+- GTE는 본문에 **두 번 등장하는데 둘 다 참고문헌 번호가 없다.** 다른 기법에는 인용을 붙이는 논문이므로, **공개 모델을 가리키는 게 아니라는 신호**로 읽힌다.
+- 공개 GTE 라인업(Alibaba Tongyi Lab)에는 **0.6B가 없다** — 인코더 계열은 0.4B 언저리에서 끊기고 LLM backbone 계열(gte-Qwen2)은 1.5B부터다. **ranker와 같은 0.6B backbone 위에 contrastive로 직접 학습한 사내 모델**로 보는 편이 자연스럽다. 여기서 "GTE"는 특정 모델명보다 **"contrastive로 학습된 범용 텍스트 임베딩 모델"이라는 일반명사**에 가깝게 쓰인 듯하다. *(추정)*
+- **재현성 관점의 실질적 한계다.** 세 모델 모두 계열을 모르면 baseline 재현이 불가능하다.
+
+### 9.2 MixLM의 attention은 전 구간 causal이다
+
+§5.2의 "masking"이 attention을 여는 장치로 오해되기 쉬우나, **정반대다.**
+
+> "(2) suffix tokens attend to themselves via **regular causal attention**."
+> "FlashInfer applies **item-aware masking** to prevent cross-item attention."
+
+| | **item-aware masking** (논문) | **bidirectional 계열** (논문 밖) |
+|---|---|---|
+| 하는 일 | attention을 **더 막는다** | attention을 **더 연다** |
+| 목적 | 패킹된 multi-item 스코어링을 **개별 스코어링과 동치**로 | 표현력 확장 |
+| 정확도 영향 | **없다**(동치가 목표) | 있다 |
+| 수록 위치 | §5 **Inference Engine Optimization** | — |
+
+#### 핵심 항등식
+
+```
+query prefix 캐시 재사용  ⟺  query 표현이 item에 독립  ⟺  query → item attention 차단
+```
+
+**최적화 선택이 아니라 항등식이다.** query가 item을 조금이라도 보면 query 표현이 item마다 달라지고, 재사용할 prefix가 존재하지 않게 된다. 즉 **진짜 query↔item 양방향 상호작용은 §5.2의 상각 구조와 수학적으로 양립 불가**다.
+
+#### 설계 공간
+
+| | q↔q | item→q | **q→item** | item↔item | prefix 캐시 |
+|---|---|---|---|---|---|
+| **causal** (MixLM) | causal | full | ✗ | causal | ✓ |
+| 표준 prefix-LM (UniLM 계열) | **bi** | full | ✗ | causal | ✓ |
+| block-bidirectional | **bi** | full | ✗ | **bi** | ✓ |
+| full bidirectional | bi | full | **bi** | bi | **✗** |
+
+> **캐시를 지키는 세 행에서 `q→item`은 전부 ✗다.** 캐시를 유지하면서 얻을 수 있는 것은 **query 내부 양방향**과 **item 내부 양방향**뿐이다. 특히 `query > item` 순서에서 **item은 causal에서도 이미 query 전체를 본다** — prefix-LM으로 바꿔도 그쪽에서 새로 열리는 것은 없다.
+>
+> 실질적 이득이 있다면 **item 내부 양방향**이다. item description이 긴 key-value 나열이면 causal에서는 **뒤쪽 속성이 앞쪽 속성을 못 본다.**
+
+#### 깊이 하이브리드의 비용
+
+하위 레이어는 causal(캐시 가능), 상위 `M`개만 bidirectional로 여는 절충이 가능하다. 다만 `N_i`가 곱해져 비용이 빠르게 커진다. `T_q=500, T_s=1, N_i=250, L=28` 가정:
+
+| | query-side attention 비용 | causal 상각 대비 |
+|---|---|---|
+| causal 상각 | ≈ 7.0 × 10⁶ | 1× |
+| 상위 **1개** 레이어만 bi | ≈ 6.3 × 10⁷ | **≈ 9×** |
+| 상위 4개 레이어 bi | ≈ 2.6 × 10⁸ | ≈ 36× |
+| full bidirectional | ≈ 1.8 × 10⁹ | ≈ 250× |
+
+> **단 한 레이어만 열어도 9배다.** 상호작용은 조금씩 사올 수 있는 물건이 아니다.
+
+#### 함의 — 논문의 baseline에 cross-encoder가 없다
+
+Table 3의 비교 대상은 ① bi-encoder retrieval ② 자기 자신의 pure-text 버전 ③ 프로덕션 요약+pruning baseline이 전부다. **잘 튜닝된 BERT cross-encoder와의 비교가 없다.** 위 causal 구조를 함께 놓고 보면 이 공백은 우연이 아닐 수 있다 — 소형 causal decoder는 모든 레이어에서 query↔item 양방향을 쓰는 cross-encoder 대비 구조적으로 불리하다. **"MixLM이 cross-encoder를 이긴다"는 이 논문에서 도출되지 않는다.**
+
+### 9.3 encoder와 ranker에 다른 계열을 써도 되는가
+
+논문의 제약은 하나다 — **"ranker의 hidden size = encoder의 output dimension"**. 계열이 다르면 이 조건이 깨지지만, **projection layer 하나로 해결된다**(논문 밖 확장. Eq.(6)에 projector는 없다).
+
+**진짜 제약은 차원이 아니라 공간이다.** Eq.(6)의 `h_R = g_R(X_R)`는 ranker의 **input embedding layer** 출력이므로, `h_S`도 **input embedding 공간**에 살아야 한다. hidden state 공간이 아니다.
+
+> **그런데 이게 문제가 안 되는 이유가 설계 안에 있다** — Stage III의 trainable module은 **`Θ = [Θ_R, Θ_E]` 전체**이고, Phase 1 커리큘럼이 `λ_align`을 올려 **space alignment를 먼저** 시킨다. 정렬은 상속받는 게 아니라 **학습된다.** 이종 계열의 간극을 흡수할 메커니즘이 이미 있다.
+
+#### tokenizer / vocab mismatch는 무해하다
+
+| | 인터페이스 | tokenizer 일치 필요? |
+|---|---|---|
+| Vanilla KD | 위치별 **vocab 분포**에 KL | **필수** |
+| **MixLM** | **dense vector `T_S`개** | **불필요** |
+
+item text는 **encoder의 tokenizer로만**, query/prefix는 **ranker의 tokenizer로만** 잘린다. **ranker는 item의 토큰을 보지 않는다.** 위치 대응도 공유 vocab 축도 없다. 논문이 "the two models may differ architecturally"라고 말할 수 있는 근거가 이것이다 — **인터페이스가 분포가 아니라 벡터**이기 때문이다. vocab 크기도 서빙 비용과 무관하다(`F_E`는 output head가 없다).
+
+**다만 tokenizer가 개입하는 지점 셋:**
+
+1. **Stage I 증류(judge → ranker)는 logit KL**이라 여기는 tokenizer가 맞아야 한다 (ranker 계열 내부 문제).
+2. **Self-Alignment Loss**: `L_hidden-align`의 타깃인 full-text 경로는 item을 **ranker의 tokenizer로** 자른다. encoder와 ranker가 같은 item을 다르게 분절한 상태에서 정렬을 요구하게 된다 — 깨지지는 않으나 난이도가 오른다.
+3. **`T_S=1` + last-N sampling**: 전체 item이 마지막 토큰 하나의 벡터로 압축되므로, "마지막 토큰이 무엇인가"가 tokenizer에 따라 달라진다.
+
+#### 비대칭 배분(큰 encoder + 작은 ranker)은 합리적인가
+
+**방향은 논문의 대칭 구성(0.6B/0.6B)보다 오히려 낫다.** encoder는 **nearline/offline·캐시**라 비용이 item당 1회로 상각되고, ranker는 **online·(query×item)마다** 실행되어 latency 예산에 직격한다. 용량을 쓸 돈이 싼 쪽이 encoder다.
+
+**다만 순서를 뒤집는 편이 낫다:**
+
+- **① 현재 병목은 encoder 품질이 아니라 token 예산일 수 있다.** Table 7은 `T_S` 1→50에서 **단조 +0.0198**을 보인다. encoder를 키워도 **1개 벡터라는 채널 용량**은 그대로다. `T_S` 확대가 먼저다.
+- **② Stage III 학습 비용이 커진다.** 0.6B+0.6B에서 **70B token / 700 H100-hours**다. 회피책으로 큰 encoder를 freeze하면 **정렬 부담이 projector 하나에 전부 얹히는데, 논문의 커리큘럼은 `Θ_E`가 학습 가능하다는 전제 위에 있다.** freeze 구성은 검증된 적이 없다.
+- **③ nearline 재인코딩 비용**이 모델 크기에 비례한다. item이 갱신되는 도메인이면 실질 운영비다.
+
+### 9.4 레시피를 응용할 때의 점검 목록
+
+**① Stage 대응을 착각하기 쉽다.**
+
+| MixLM | 내용 | 흔한 응용 |
+|---|---|---|
+| **Stage I** | judge의 **CoT(rationale)를 증류** — 180K reasoning dataset | **생략되는 경우가 많다** |
+| **Stage II** | ranking SFT — 10.9M | 보통 여기부터 시작 |
+| **Stage III** | joint encoder-ranker | — |
+
+Table 8이 재는 것이 정확히 Stage I의 효과이며 **+0.0185, 논문 전체 최대 단일 ablation**이다. judge에서 **점수만 뽑고 rationale을 버리면** 이 몫을 통째로 포기하는 것이다.
+
+**② 천장을 먼저 확인하라.** 압축(Stage III)은 **pure-text 성능을 넘을 수 없다.** MixLM에서 이 압축이 장사가 된 이유는 Full Text가 **0.9432로 압도적**이었기 때문이다. pure-text 단계가 기존 baseline에 못 미치면 embedding 경로·정렬·`T_S` 확대는 전부 의미가 없다. **`T_S`를 늘려도 단조 증가만 있고 baseline에 못 미친다면, 병목은 압축이 아니라 천장이다.**
+
+**③ 학습/서빙 동치성을 검증하라.** 학습이 (query, item) 쌍 단위이고 서빙이 multi-item 패킹이면, item-aware masking을 구현해도 **position id가 남는다.** 학습에서 item은 항상 `T_q~T_q+T_i`에 있었는데, 서빙에서 뒤쪽 슬롯 item은 학습에서 본 적 없는 RoPE 위치를 받는다. 각 item의 position이 `T_q`부터 리셋되어야 동치다.
+
+> **검증은 "개선되는가"가 아니라 "동일한가"로 하라** — 같은 (query, item)을 ① 단독 시퀀스 ② 배치의 여러 슬롯에 넣어 스코어링했을 때 **logit이 fp 오차 범위에서 일치**해야 한다.
+
+**④ 데이터 규모.** Stage II는 **10.9M**이고 Table 6은 160K→1.08M에서 **+0.0334**로 계속 오른다. 이 레시피는 백만 단위를 전제한다.
+
+**⑤ 정확도가 목표라면 구조부터 확인하라.** 소형 causal decoder가 cross-encoder에 못 미친다면, 마스크 절충이나 하이퍼파라미터로 메울 문제인지부터 판별해야 한다. **full bidirectional로 상한선을 먼저 재고**(서빙 고려 없이), 거기서도 못 넘으면 소형 LLM 경로 자체를 재고하는 편이 빠르다. 넘는다면 그때 §9.2의 비용표를 놓고 **정확도 대 throughput을 협상**하면 된다.
