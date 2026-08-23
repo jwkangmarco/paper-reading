@@ -3,6 +3,17 @@
 ## Project Overview
 - 마르코가 개인적으로 관심있는 학술 논문는 읽고 요약하는 프로젝트
 
+## Repository Structure
+```
+{yyyy-mm-dd}/                 요약을 작성한 날짜 폴더
+  {논문_약칭}.md               논문 요약 (snake_case)
+  assets/                     해당 폴더 문서들이 참조하는 이미지
+tools/extract_figs.py         PDF에서 Figure/Table 자동 추출
+```
+- **PDF는 `.gitignore` 대상**(`*.pdf`)이라 추적되지 않는다. 로컬에만 두고 쓴다.
+- 이미지는 문서와 같은 날짜 폴더의 `assets/` 에 두고 `./assets/...` 상대경로로 참조한다.
+- 관련 스킬: `paper-summary`(요약 생성), `paper-comparison`(논문 간 비교)
+
 ## Conventions
 - 논문 요약은 마크다운으로 작성
 - LaTeX 수식은 plain text로 변환하여 가독성 확보

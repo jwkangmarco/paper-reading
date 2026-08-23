@@ -17,6 +17,18 @@
 
 벡터/래스터를 가리지 않는다 — 렌더 결과를 자르기 때문이다.
 필요: poppler(pdftohtml, pdftoppm), Pillow
+
+검증 범위 (2026-08-23)
+  pdfTeX 로 조판된 논문 2편에서 Figure/Table 57개를 전수 추출, 실패·누락 0.
+    Qwen_Scope (35p) 28/28,  DeepSeek_V4 (58p) 29/29 — 각각 육안 확인함.
+  지원하는 캡션 형식: "Figure 3: ..." (ACL/NeurIPS 계열), "Figure 7 | ..." (DeepSeek 계열).
+
+알려진 한계
+  - 캡션이 유일한 앵커다. 캡션 없는 그림은 찾지 못한다.
+  - 텍스트 레이어가 없는 스캔 PDF에는 쓸 수 없다.
+  - 래스터 원본이 렌더 해상도보다 크면 화질을 손해 본다.
+    (예: DeepSeek p43 은 5708x3220 원본이 박혀 있어 pdfimages 쪽이 낫다)
+  - Word 산출물 등 다른 조판 도구의 PDF 는 검증하지 않았다. 처음 쓸 때는 결과를 확인할 것.
 """
 import re, os, sys, subprocess, html, json
 from collections import Counter
