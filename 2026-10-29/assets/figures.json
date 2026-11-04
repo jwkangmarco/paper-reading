@@ -1,0 +1,161 @@
+[
+  {
+    "page": 3,
+    "kind": "Figure",
+    "num": "1",
+    "caption": "Figure 1: Cosine similarity distributions of ran- Squeezing Representation Space. Another dom/similar sequence pairs using [CLS] embed- challenge is that the representations from dings from pretrained models. Histograms/curves Transformer-based language models often reside are distribution bins/kernel density estimates. in a narrow cone, where two random sentences",
+    "file": "coco_fig1.png",
+    "ok": true
+  },
+  {
+    "page": 4,
+    "kind": "Figure",
+    "num": "2",
+    "caption": "Figure 2: The overview of COCO-LM. The auxiliary Transformer is pretrained by MLM. Its corrupted text sequence is used as the main Transformer’s pretraining input in Corrective Language Modeling and paired with the cropped original sequence for Sequence Contrastive Learning.",
+    "file": "coco_fig2.png",
+    "ok": true
+  },
+  {
+    "page": 7,
+    "kind": "Table",
+    "num": "1",
+    "caption": "Table 1: Results on GLUE and SQuAD 2.0 development set. All results are single-task, single-model fine-tuning. Results not available in public reports are marked as “–”. DeBERTa reported RTE, MRPC and STS-B results by fine-tuning from MNLI checkpoints which are not single-task results. We use Spearman correlation for STS, Matthews correlation for CoLA, and accuracy for the rest on GLUE. AVG is the average of the eight tasks on GLUE. All baseline results unless marked by (Ours) are reported by previous research.",
+    "file": "coco_table1.png",
+    "ok": true
+  },
+  {
+    "page": 7,
+    "kind": "Table",
+    "num": "2",
+    "caption": "Table 2: GLUE test set results obtained from the GLUE leaderboard. We perform hyperparameter search for each task with ten random seeds and use the best development set model for test predictions. All results are from vanilla single-task fine-tuning (no ensemble, task-specific tricks, etc.).",
+    "file": "coco_table2.png",
+    "ok": true
+  },
+  {
+    "page": 8,
+    "kind": "Table",
+    "num": "3",
+    "caption": "Table 3: Ablations on GLUE Dev. that eliminate (w/o.), keep (Only) or switch (w.) one component.",
+    "file": "coco_table3.png",
+    "ok": true
+  },
+  {
+    "page": 8,
+    "kind": "Figure",
+    "num": "4",
+    "caption": "Figure 4: The performance of",
+    "file": "coco_fig4.png",
+    "ok": true
+  },
+  {
+    "page": 8,
+    "kind": "Figure",
+    "num": "3",
+    "caption": "Figure 3: COCO-LM on MNLI Dev. ( y -axes) at differ- COCO-LM Base when pretrained",
+    "file": "coco_fig3.png",
+    "ok": true
+  },
+  {
+    "page": 9,
+    "kind": "Figure",
+    "num": "5",
+    "caption": "Figure 5: Cosine similarity of se- quence pairs randomly sampled from pretraining corpus and most similar pairs from STS-B using [CLS] from COCO-LM Base .",
+    "file": "coco_fig5.png",
+    "ok": true
+  },
+  {
+    "page": 9,
+    "kind": "Figure",
+    "num": "6",
+    "caption": "Figure 6: The t-SNE of sequence representations learned with or without SCL. The points are sampled from the most semantically similar sentences pairs from STS-B (with 5 -score labels). The [CLS] embeddings are not fine-tuned. Some randomly selected similar pairs are marked by same shapes.",
+    "file": "coco_fig6.png",
+    "ok": true
+  },
+  {
+    "page": 9,
+    "kind": "Figure",
+    "num": "7",
+    "caption": "Figure 7: Analyses of SCL. Figs. (a) and (b) show the average cosine similarity between the [CLS] embeddings of positive and negative contrastive pairs during pretraining. Figs. (c) and (d) show the few-shot accuracy on MNLI with different fractions of MNLI training set used ( x -axes). The error bars mark the max/min and the solid lines are the average of five fine-tuning runs.",
+    "file": "coco_fig7.png",
+    "ok": true
+  },
+  {
+    "page": 10,
+    "kind": "Figure",
+    "num": "8",
+    "caption": "Figure 8: The copying accuracy and the language modeling accuracy ( y -axes) of CLM and All-Token MLM at different pretraining steps ( x -axes, in 10 K scale). The accuracy is averaged on tokens that are replaced by the auxiliary Transformer (Replaced) or those from the original input text (Original).",
+    "file": "coco_fig8.png",
+    "ok": true
+  },
+  {
+    "page": 10,
+    "kind": "Table",
+    "num": "4",
+    "caption": "Table 4: Few-shot prompt-based fine-tuning model, with everything else kept same as described",
+    "file": "coco_table4.png",
+    "ok": true
+  },
+  {
+    "page": 15,
+    "kind": "Table",
+    "num": "5",
+    "caption": "Table 5: The list of tasks in GLUE, their training data size, language tasks, evaluation metrics, and domain of corpus.",
+    "file": "coco_table5.png",
+    "ok": true
+  },
+  {
+    "page": 15,
+    "kind": "Table",
+    "num": "6",
+    "caption": "Table 6: Hyperparameters used in pretraining.",
+    "file": null,
+    "ok": false
+  },
+  {
+    "page": 16,
+    "kind": "Table",
+    "num": "7",
+    "caption": "Table 7: Hyperparameter ranges searched for fine-tuning on GLUE. GLUE small tasks include CoLA, RTE, MRPC and STS-B. GLUE large tasks include MNLI, QQP, QNLI and SST-2.",
+    "file": "coco_table7.png",
+    "ok": true
+  },
+  {
+    "page": 16,
+    "kind": "Table",
+    "num": "8",
+    "caption": "Table 8: Hyperparameter ranges searched for fine-tuning on SQuAD.",
+    "file": "coco_table8.png",
+    "ok": true
+  },
+  {
+    "page": 8,
+    "kind": "Figure",
+    "num": "1",
+    "caption": "Figure 1: Encoder vs decoder comparison across model size. Generally models in the preferred architecture (e.g. encoders in MNLI) do better than the opposite architecture even with an order of magnitude greater size , e.g. a 400M decoder outperforming the 1B encoder. Notably, in generative tasks, decoders-from-encoders scale poorly with size.",
+    "file": "ettin_fig1.png",
+    "ok": true
+  },
+  {
+    "page": 9,
+    "kind": "Figure",
+    "num": "2",
+    "caption": "Figure 2: Gender pronoun predictions on the Gotcha split of WinoGender ( Rudinger et al. , 2018 ), a 50/50 stereotypical male/female split. We see that encoder models are more likely to use gender neutral pronouns whereas both are biased towards male pronouns.",
+    "file": "ettin_fig2.png",
+    "ok": true
+  },
+  {
+    "page": 5,
+    "kind": "Figure",
+    "num": "1",
+    "caption": "Figure 1: Illustration of different embedding sharing methods. (a) ES: E , θ G and θ D will be jointly updated in a single backward pass with regards to L M LM ` λL RT D . (b) NES: E G and θ G will first be updated via the backward pass with regards to L M LM , then E D and θ D will be updated via the backward pass with regards to λL RT D . (c) GDES: E G and θ G will first be updated in the backward pass with regards to L M LM , then E ∆ and θ D will be updated via the backward pass with regards to λL RT D and E G . sg is the stop gradient operator that prevents the discriminator from updating E G",
+    "file": "debv3_fig1.png",
+    "ok": true
+  },
+  {
+    "page": 6,
+    "kind": "Figure",
+    "num": "2",
+    "caption": "Figure 2: MLM training loss of the generator with different word embedding sharing methods.",
+    "file": "debv3_fig2.png"
+  }
+]
