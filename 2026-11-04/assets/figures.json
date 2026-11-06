@@ -1,0 +1,42 @@
+[
+ {
+  "page": 2,
+  "kind": "Figure",
+  "num": "1",
+  "caption": "Figure 1: K-CARE: (1) Symmetrical Contextual Anchoring (SCA) grounds reasoning in behavior-derived implicit knowledge through bidirectional anchors. (2) Analogical Prototype Reasoning (APR) leverages expert-curated prototypical knowledge to calibrate decision boundaries via in-context analogy",
+  "file": "kcare_fig1.png",
+  "ok": true
+ },
+ {
+  "page": 5,
+  "kind": "Table",
+  "num": "1",
+  "caption": "Table 1: Evaluation Results",
+  "file": "kcare_table1.png",
+  "ok": true
+ },
+ {
+  "page": 5,
+  "kind": "Table",
+  "num": "2",
+  "caption": "Table 2: Prompt templates for TGKI training objectives.",
+  "file": "kcare_table2.png",
+  "ok": true
+ },
+ {
+  "page": 5,
+  "kind": "Table",
+  "num": "3",
+  "caption": "Table 3: Distribution of Test Datasets",
+  "file": "kcare_table3.png",
+  "ok": true
+ },
+ {
+  "page": 6,
+  "kind": "Table",
+  "num": "4",
+  "caption": "Table 4: Online Bad Case Rate Comparison. 4.5 Ablation Study",
+  "file": "kcare_table4.png",
+  "ok": true
+ }
+]
