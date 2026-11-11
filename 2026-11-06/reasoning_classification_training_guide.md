@@ -173,6 +173,8 @@ GRPO, RFT, on-policy distillation은 모두 **학생 모델이 직접 생성한 
 
 ### 3.5 메트릭 계산 예시 (샘플 5개, 3-class, G=8)
 
+> 계산 과정의 상세 풀이: [메트릭 계산 예시 상세 풀이](./reasoning_classification_metrics_example.md)
+
 | 샘플 | p | learnable? | 모든 rollout 보상이 같을 확률 | 다수결 답이 정답? | 해석 |
 |---|---|---|---|---|---|
 | 1 | 1.0 | ✗ | 1.00 | ✓ | 배울 것 없음 |
