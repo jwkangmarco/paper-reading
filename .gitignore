@@ -1,3 +1,6 @@
 .obsidian/
 .DS_Store
 *.pdf
+
+# Downloaded source papers (PDF, blog dumps) stay local
+*/reasoning_qa/pdf/
